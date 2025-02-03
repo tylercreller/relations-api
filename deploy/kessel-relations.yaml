@@ -202,4 +202,4 @@ parameters:
     value: '1'
   - description: SpiceDB Image
     name: SPICEDB_IMAGE
-    value: ghcr.io/authzed/spicedb:v1.31.0
+    value: quay.io/redhat-services-prod/project-kessel-tenant/kessel-relations/spicedb:a0e8195d94937a5a1e5950031f6b12ae33d64bf7

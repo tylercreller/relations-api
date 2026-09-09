@@ -3,68 +3,6 @@ kind: Template
 metadata:
   name: relations
 objects:
-  - apiVersion: authzed.com/v1alpha1
-    kind: SpiceDBCluster
-    metadata:
-      name: ${CLOWDAPP_NAME}-spicedb
-    spec:
-      config:
-        logLevel: ${SPICEDB_LOG_LEVEL}
-        replicas: ${{SPICEDB_REPLICAS}}
-        datastoreEngine: postgres
-        image: ${SPICEDB_IMAGE}
-      secretName: spicedb-config
-      patches:
-      - kind: Job
-        patch:
-          spec:
-            template:
-              spec:
-                containers:
-                  - name: migrate
-                    volumeMounts:
-                      - mountPath: /etc/tls/rds.pem
-                        name: rds-tls
-                        subPath: db.ca_cert
-                volumes:
-                  - name: rds-tls
-                    secret:
-                      secretName: kessel-relations-spicedb
-      - kind: Deployment
-        patch:
-          spec:
-            template:
-              spec:
-                containers:
-                - name: spicedb
-                  resources:
-                    requests:
-                      memory: ${SPICEDB_REQUESTS_MEMORY}
-                      cpu: ${SPICEDB_REQUESTS_CPU}
-                    limits:
-                      memory: ${SPICEDB_LIMITS_MEMORY}
-                      cpu: ${SPICEDB_LIMITS_CPU}
-                  env:
-                    - name: SPICEDB_DATASTORE_REVISION_QUANTIZATION_INTERVAL
-                      value: ${SPICEDB_QUANTIZATION_INTERVAL}
-                    - name: SPICEDB_DATASTORE_REVISION_QUANTIZATION_MAX_STALENESS_PERCENT
-                      value: ${SPICEDB_QUANTIZATION_STALENESS_PERCENT}
-                    - name: SPICEDB_DATASTORE_CONN_POOL_READ_MAX_OPEN
-                      value: ${SPICEDB_DATASTORE_MAX_CONN_OPEN}
-                    - name: SPICEDB_DATASTORE_CONN_POOL_READ_MIN_OPEN
-                      value: ${SPICEDB_DATASTORE_MIN_CONN_OPEN}
-                    - name: SPICEDB_ENABLE_EXPERIMENTAL_WATCHABLE_SCHEMA_CACHE
-                      value: ${SPICEDB_ENABLE_WATCHABLE_SCHEMA_CACHE}
-                    - name: SPICEDB_WRITE_RELATIONSHIPS_MAX_UPDATES_PER_CALL
-                      value: ${SPICEDB_WRITE_RELATIONSHIPS_MAX_UPDATES_PER_CALL}
-                  volumeMounts:
-                    - name: rds-tls
-                      mountPath: /etc/tls/rds.pem
-                      subPath: db.ca_cert
-                volumes:
-                  - name: rds-tls
-                    secret:
-                      secretName: kessel-relations-spicedb
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
@@ -128,15 +66,6 @@ objects:
       selector:
         matchLabels:
           app: kessel-relations
-  - kind: PodDisruptionBudget
-    apiVersion: policy/v1
-    metadata:
-      name: kessel-spicedb-pdb
-    spec:
-      minAvailable: 1
-      selector:
-        matchLabels:
-          app.kubernetes.io/instance: kessel-relations-spicedb-spicedb
 parameters:
   - description: Name of the ClowdApp
     name: CLOWDAPP_NAME
@@ -151,27 +80,9 @@ parameters:
     name: IMAGE_TAG
     required: true
     value: latest
-  - description: SpiceDB Image
-    name: SPICEDB_IMAGE
-    value: ghcr.io/authzed/spicedb:v1.31.0
-  - description: Number of pods for spiceDB service
-    name: SPICEDB_REPLICAS
-    value: '1'
   - description: Number of pods for relations service
     name: RELATIONS_REPLICAS
     value: '1'
-  - description: Memory request for SpiceDB
-    name: SPICEDB_REQUESTS_MEMORY
-    value: '128Mi'
-  - description: CPU request for SpiceDB
-    name: SPICEDB_REQUESTS_CPU
-    value: '25m'
-  - description: Memory limit for SpiceDB
-    name: SPICEDB_LIMITS_MEMORY
-    value: '256Mi'
-  - description: CPU limit for SpiceDB
-    name: SPICEDB_LIMITS_CPU
-    value: '100m'
   - description: Memory request for relations service
     name: RELATIONS_REQUESTS_MEMORY
     value: '512Mi'
@@ -184,24 +95,3 @@ parameters:
   - description: CPU limit for relations service
     name: RELATIONS_LIMITS_CPU
     value: '300m'
-  - description: SpiceDB quantization interval in seconds
-    name: SPICEDB_QUANTIZATION_INTERVAL
-    value: '5s'
-  - description: SpiceDB quantization max staleness percent (float)
-    name: SPICEDB_QUANTIZATION_STALENESS_PERCENT
-    value: '0.1'
-  - description: Maximum number of open connections to datastore
-    name: SPICEDB_DATASTORE_MAX_CONN_OPEN
-    value: '20'
-  - description: Minimum number of open connections to datastore
-    name: SPICEDB_DATASTORE_MIN_CONN_OPEN
-    value: '20'
-  - description: Enable the experimental schema cache which makes use of the Watch API for automatic updates
-    name: SPICEDB_ENABLE_WATCHABLE_SCHEMA_CACHE
-    value: 'false'
-  - description: maximum number of updates allowed for WriteRelationships calls
-    name: SPICEDB_WRITE_RELATIONSHIPS_MAX_UPDATES_PER_CALL
-    value: '1000'
-  - description: SpiceDB log level - possible values ("trace", "debug", "info", "warn", "error")
-    name: SPICEDB_LOG_LEVEL
-    value: debug
